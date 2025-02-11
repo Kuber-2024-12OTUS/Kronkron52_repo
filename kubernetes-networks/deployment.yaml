@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homework-deployment
+  namespace: homework
+  labels:
+    app: homework-web
+spec:
+  replicas: 3  # Запускаем 3 экземпляра пода
+  selector:
+    matchLabels:
+      app: homework-web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1  # Максимум 1 под может быть недоступен во время обновления
+  template:
+    metadata:
+      labels:
+        app: homework-web
+    spec:
+      volumes:
+        - name: shared-volume
+          emptyDir: {}
+      initContainers:
+        - name: init-container
+          image: busybox
+          command: ['sh', '-c', 'echo "<html><body><h1>Hello from init-container!</h1></body></html>" > /init/index.html']
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /init
+      containers:
+        - name: web-container
+          image: nginx
+          ports:
+            - containerPort: 80  # Изменил на 80, так как nginx по умолчанию слушает этот порт
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /usr/share/nginx/html
+          lifecycle:
+            preStop:
+              exec:
+                command: ['sh', '-c', 'rm -f /homework/index.html']
+          readinessProbe:
+            httpGet:
+              path: /index.html # Путь к файлу
+              port: 80          # Порт, на котором работает nginx
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      restartPolicy: Always
+      nodeSelector:
+        homework: "true"  # Запуск только на нодах с меткой homework=true
