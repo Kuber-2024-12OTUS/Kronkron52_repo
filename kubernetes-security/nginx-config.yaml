@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: homework
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        server {
+            listen 80;
+            server_name localhost;
+
+            location /conf/file {
+                alias /homework/conf/;
+                autoindex on;
+                disable_symlinks off;
+
+                # Добавляем "/" в конце URL, если его нет
+                if (-d $request_filename) {
+                    rewrite ^(/conf/file)([^/])$ $1$2/ permanent;
+                }
+            }
+
+            location / {
+                root /usr/share/nginx/html;
+                index index.html;
+            }
+
+            location /homepage {
+                alias /usr/share/nginx/html;
+                try_files $uri $uri/ /index.html;
+            }
+
+            location /metrics.html {
+                root /usr/share/nginx/html;
+            }
+        }
+    }
