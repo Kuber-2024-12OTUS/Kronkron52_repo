@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homework-deployment
+  namespace: homework
+  labels:
+    app: homework-web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: homework-web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: homework-web
+    spec:
+      serviceAccountName: monitoring
+      volumes:
+        - name: shared-volume
+          persistentVolumeClaim:
+            claimName: homework-pvc
+        - name: config-volume
+          configMap:
+            name: homework-config
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+      initContainers:
+        - name: init-container
+          image: curlimages/curl
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          command: ['sh', '-c', 'curl -k https://otus.ru > /init/index.html && curl -k https://kubernetes.default.svc.cluster.local/metrics >> /init/metrics.html']
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /init
+      containers:
+        - name: web-container
+          image: nginx
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /usr/share/nginx/html
+            - name: config-volume
+              mountPath: /homework/conf
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          lifecycle:
+            preStop:
+              exec:
+                command: ['sh', '-c', 'rm -f /homework/index.html']
+          readinessProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      restartPolicy: Always
+      nodeSelector:
+        homework: "true"
