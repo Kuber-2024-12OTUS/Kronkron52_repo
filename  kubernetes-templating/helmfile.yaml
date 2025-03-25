@@ -1,0 +1,40 @@
+repositories:
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+
+releases:
+  # Kafka в namespace prod
+  - name: kafka-prod
+    namespace: prod
+    chart: bitnami/kafka
+    version: 22.1.5  # Версия чарта, которая поддерживает Kafka 3.5.2
+    values:
+      - image:
+          tag: 3.5.2-debian-11-r0
+        replicaCount: 5
+        auth:
+          clientProtocol: sasl
+          interBrokerProtocol: sasl
+          saslMechanisms: plain
+          saslInterBrokerMechanism: plain
+          interBrokerUser: admin
+          interBrokerPassword: "adminpassword"
+          clientUsers:
+            - admin
+          clientPasswords:
+            - "adminpassword"
+
+  # Kafka в namespace dev
+  - name: kafka-dev
+    namespace: dev
+    chart: bitnami/kafka
+    version: 22.1.5  # Последняя версия чарта
+    values:
+      - replicaCount: 1
+        auth:
+          clientProtocol: plaintext
+          interBrokerProtocol: plaintext
+          saslMechanisms: plain
+          saslInterBrokerMechanism: plain
+          allowPlaintextListener: true
+          deleteTopicEnable: true

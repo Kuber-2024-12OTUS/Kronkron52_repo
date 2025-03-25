@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}-deployment
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "homework-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  replicas: {{ .Values.app.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "homework-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        {{- include "homework-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: web
+    spec:
+      serviceAccountName: monitoring
+      volumes:
+        {{- if .Values.storage.enabled }}
+        - name: shared-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.app.name }}-pvc
+        {{- end }}
+        - name: config-volume
+          configMap:
+            name: {{ .Values.app.name }}-config
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+      {{- if .Values.initContainer.enabled }}
+      initContainers:
+        - name: init-container
+          image: {{ .Values.initContainer.image }}
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          command: ['sh', '-c', 'curl -k https://otus.ru > /init/index.html && curl -k https://kubernetes.default.svc.cluster.local/metrics >> /init/metrics.html']
+          volumeMounts:
+            {{- if .Values.storage.enabled }}
+            - name: shared-volume
+              mountPath: /init
+            {{- end }}
+      {{- end }}
+      containers:
+        - name: web-container
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          volumeMounts:
+            {{- if .Values.storage.enabled }}
+            - name: shared-volume
+              mountPath: /usr/share/nginx/html
+            {{- end }}
+            - name: config-volume
+              mountPath: /homework/conf
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          lifecycle:
+            preStop:
+              exec:
+                command: ['sh', '-c', 'rm -f /homework/index.html']
+          readinessProbe:
+            httpGet:
+              path: /index.html
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      restartPolicy: Always
+      nodeSelector:
+        {{- toYaml .Values.app.nodeSelector | nindent 8 }}

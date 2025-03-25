@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "homework-app.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "homework-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+  ports:
+    - protocol: TCP
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+  type: {{ .Values.service.type }}

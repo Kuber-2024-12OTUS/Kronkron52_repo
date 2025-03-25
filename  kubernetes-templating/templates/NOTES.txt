@@ -1,0 +1,36 @@
+{{- if .Values.ingress.enabled }}
+1. Get the application URL by running:
+   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }}{{ range .Values.ingress.paths }}{{ .path }}{{ end }}
+{{- else if contains "NodePort" .Values.service.type }}
+1. Get the application URL by running:
+   export NODE_PORT=$(kubectl get --namespace {{ .Values.global.namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ .Values.service.name }})
+   export NODE_IP=$(kubectl get nodes --namespace {{ .Values.global.namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+   echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+1. Get the application URL by running:
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status of by running 'kubectl get --namespace {{ .Values.global.namespace }} svc -w {{ .Values.service.name }}'
+   export SERVICE_IP=$(kubectl get svc --namespace {{ .Values.global.namespace }} {{ .Values.service.name }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+   echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+1. Get the application URL by running:
+   export POD_NAME=$(kubectl get pods --namespace {{ .Values.global.namespace }} -l "app.kubernetes.io/name={{ .Values.app.name }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+   echo "Visit http://127.0.0.1:8080 to use your application"
+   kubectl port-forward $POD_NAME 8080:{{ .Values.service.port }} --namespace {{ .Values.global.namespace }}
+{{- end }}
+
+{{- if .Values.mysql.enabled }}
+2. MySQL can be accessed via port 3306 on the following DNS name from within your cluster:
+   {{ .Release.Name }}-mysql.{{ .Values.global.namespace }}.svc.cluster.local
+
+   To get your root password run:
+   MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace {{ .Values.global.namespace }} {{ .Release.Name }}-mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+
+   To connect to your database:
+   1. Run an Ubuntu pod that you can use as a client:
+      kubectl run -i --tty ubuntu --image=ubuntu:20.04 --restart=Never -- bash -il
+   2. Install the mysql client:
+      apt-get update && apt-get install mysql-client -y
+   3. Connect using the mysql cli, then provide your password:
+      mysql -h {{ .Release.Name }}-mysql -p
+{{- end }}

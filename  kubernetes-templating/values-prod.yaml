@@ -1,0 +1,14 @@
+image:
+  tag: 3.5.2-debian-11-r0
+replicaCount: 5
+auth:
+  clientProtocol: sasl
+  interBrokerProtocol: sasl
+  saslMechanisms: plain
+  saslInterBrokerMechanism: plain
+  interBrokerUser: admin
+  interBrokerPassword: "adminpassword"
+  clientUsers:
+    - admin
+  clientPasswords:
+    - "adminpassword"
