@@ -1,0 +1,60 @@
+# Global settings
+global:
+  namespace: homework
+
+# App settings
+app:
+  name: homework-app
+  version: "1.0.0"
+  logLevel: "INFO"
+  replicaCount: 3
+  nodeSelector:
+    homework: "true"
+
+# Image settings
+image:
+  repository: nginx
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Init container settings
+initContainer:
+  image: curlimages/curl
+  enabled: true
+
+# Service settings
+service:
+  name: homework-service
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# Ingress settings
+ingress:
+  enabled: true
+  host: homework.otus
+  paths:
+    - path: /homepage
+      pathType: Prefix
+    - path: /metrics.html
+      pathType: Prefix
+
+# Storage settings
+storage:
+  enabled: true
+  size: 1Gi
+  storageClassName: homework-storageclass
+  reclaimPolicy: Retain
+
+# RBAC settings
+rbac:
+  create: true
+
+# MySQL settings (dependency)
+mysql:
+  enabled: true
+  auth:
+    rootPassword: ""
+    database: "homework_db"
+    username: "homework_user"
+    password: ""

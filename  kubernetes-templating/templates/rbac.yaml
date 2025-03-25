@@ -1,0 +1,48 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.app.name }}-admin-binding
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "homework-app.labels" . | nindent 4 }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.app.name }}-sa
+  namespace: {{ .Values.global.namespace }}
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: metrics-access
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "homework-app.labels" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/log", "pods/portforward"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: metrics-access-binding
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "homework-app.labels" . | nindent 4 }}
+subjects:
+- kind: ServiceAccount
+  name: monitoring
+  namespace: {{ .Values.global.namespace }}
+roleRef:
+  kind: Role
+  name: metrics-access
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

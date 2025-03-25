@@ -1,0 +1,10 @@
+image:
+  tag: 3.5.2-debian-11-r0
+replicaCount: 1
+auth:
+  clientProtocol: plaintext
+  interBrokerProtocol: plaintext
+  saslMechanisms: plain
+  saslInterBrokerMechanism: plain
+  allowPlaintextListener: true
+  deleteTopicEnable: true
